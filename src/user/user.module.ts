@@ -1,9 +1,9 @@
 import { Module } from '@nestjs/common';
-import { UserController } from './user.controller';
-import { UserService } from './user.service';
 import { MongooseModule } from '@nestjs/mongoose';
-import { UserSchema } from './user.schema';
 import { USER_COLLECTION_NAME } from 'src/constant/userConstant';
+import { UserController } from './user.controller';
+import { UserSchema } from './user.schema';
+import { UserService } from './user.service';
 
 // collect for module
 @Module({
@@ -12,7 +12,11 @@ import { USER_COLLECTION_NAME } from 'src/constant/userConstant';
       { name: USER_COLLECTION_NAME, schema: UserSchema },
     ]),
   ],
-  controllers: [UserController],
-  providers: [UserService],
+  controllers: [
+    UserController
+  ],
+  providers: [
+    UserService
+  ],
 })
 export class UserModule { }

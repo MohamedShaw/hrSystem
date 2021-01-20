@@ -1,10 +1,8 @@
-import { Injectable } from '@nestjs/common';
-import { UserDto, SignInDto } from './create-cat.dto';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
+import { Model } from 'mongoose';
 import { USER_COLLECTION_NAME } from 'src/constant/userConstant';
-import { Model, Schema } from 'mongoose';
-import { UserModule } from './user.module';
-import { UserSchema } from './user.schema';
+import { FindUsersQueryDto, SignInDto, UpdateUserDto, UserDto } from './create-cat.dto';
 import { UserData } from './user.interface';
 const bcrypt = require('bcrypt');
 
@@ -20,21 +18,27 @@ export class UserService {
 
         return hash;
     }
-    async create(createCatDto: UserDto): Promise<any> {
-        const user = {
-            ...createCatDto,
-        };
 
-        const passwordHash = await this.hashPassword(createCatDto.password);
-        console.log('passwordHash', passwordHash);
+    async create(createUserDto: UserDto): Promise<UserData> {
 
-        user.password = passwordHash;
+        let isUserFoundWithEmail = await this.checkUserWithEmailExistance(createUserDto.email)
+        if (isUserFoundWithEmail)
+            throw new BadRequestException("this email is already in use")
 
-        console.log('user -->>', user);
-
-        const createdUser = await this.userModel.create(user);
-        return createdUser.save();
+        return await this.userModel.create({
+            ...createUserDto,
+            password: await this.hashPassword(createUserDto.password)
+        })
     }
+
+    async checkUserWithEmailExistance(email: string): Promise<boolean> {
+        let userWithEmail = await this.userModel.findOne({ email })
+
+        return (userWithEmail) ? true : false
+    }
+
+
+
     async comparePassword(password, hash) {
         const foundPass = await bcrypt.compare(password, hash);
         return foundPass;
@@ -60,9 +64,58 @@ export class UserService {
         //success return user ? return error
 
     }
-    async getAllUser(): Promise<any> {
-        const users = await this.userModel.find()
-        return users
+
+    async findUserById(userId: string) {
+        let user = await this.userModel.findById(userId)
+        console.log("🚀 ~ file: user.service.ts ~ line 70 ~ UserService ~ findUserById ~ user", user)
+        if (!user) {
+            throw new NotFoundException(`user with Id is not found`)
+        }
+        return user
+    }
+
+
+    async getAllUsers(finUsersQuery: FindUsersQueryDto) {
+        let findQuery: { _id?: string, gender?: string } = {};
+
+        if (finUsersQuery.userId) {
+            findQuery._id = finUsersQuery.userId
+        }
+
+        if (finUsersQuery.gender) {
+            findQuery.gender = finUsersQuery.gender
+        }
+
+        console.log("🚀 ~ file: user.service.ts ~ line 88 ~ UserService ~ getAllUsers ~ findQuery", findQuery)
+
+        return await this.userModel.find(findQuery)
+
+
+    }
+
+
+    async deleteUser(userId: string) {
+        await this.findUserById(userId)
+        await this.userModel.findByIdAndDelete(userId)
+    }
+
+    async updateUser(
+        userId: string,
+        uodateData: UpdateUserDto
+    ) {
+        console.log("🚀 ~ file: user.service.ts ~ line 106 ~ UserService ~ uodateData", uodateData)
+        console.log("🚀 ~ file: user.service.ts ~ line 106 ~ UserService ~ userId", userId)
+        await this.findUserById(userId)
+
+        let updatedUser = await this.userModel.findByIdAndUpdate(
+            userId,
+            uodateData,
+            {
+                new: true
+            }
+        )
+
+        return updatedUser
     }
 
 }

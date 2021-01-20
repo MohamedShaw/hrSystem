@@ -1,22 +1,31 @@
-import { Controller, Get, Post, Body } from '@nestjs/common';
-import { UserService } from './user.service';
-import { UserDto, SignInDto } from './create-cat.dto';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
+import { FindUsersQueryDto, SignInDto, UpdateUserDto, UserDto } from './create-cat.dto';
+import { UserService } from './user.service';
 
-@Controller('user')
+
+@Controller('users')
 export class UserController {
-    constructor(private readonly userService: UserService) { }
-    @Get()
-    async getUser(id) {
-        const _user = await this.userService.getUserById(id);
-        return _user;
+    constructor(
+        private readonly userService: UserService
+    ) { }
+
+
+    @ApiTags('users')
+    @Get('/:userId')
+    async findUserById(
+        @Param('userId') userId: string
+    ) {
+        return await this.userService.findUserById(userId)
     }
 
 
+    @ApiTags('Auth')
     @Post()
-    async createUser(@Body() loginUserDto: UserDto) {
-        const _user = await this.userService.create(loginUserDto);
-        return _user;
+    async createUser(
+        @Body() createUser: UserDto
+    ) {
+        return await this.userService.create(createUser)
     }
 
     @ApiTags('Auth')
@@ -25,10 +34,35 @@ export class UserController {
         const _user = await this.userService.getUserById(signInBody)
         return _user;
     }
-    @ApiTags('Auth')
-    @Get('/users')
-    async getAllUsers() {
-        const _user = await this.userService.getAllUser()
-        return _user;
+
+    @ApiTags('users')
+    @Get('')
+    async getAllUsers(
+        @Query() findUsers: FindUsersQueryDto
+    ) {
+        let users = await this.userService.getAllUsers(findUsers)
+
+        return users;
     }
+
+    @ApiTags('users')
+    @Delete('/:userId')
+    async deleteUserById(
+        @Param('userId') userId: string
+    ) {
+        await this.userService.deleteUser(userId)
+    }
+
+    @ApiTags('users')
+    @Patch('/:userId')
+    async updateUser(
+        @Param('userId') userId: string,
+        @Body() updateUserData:UpdateUserDto
+    ){
+        return this.userService.updateUser(
+            userId,
+            updateUserData
+        )
+    }
+
 }
