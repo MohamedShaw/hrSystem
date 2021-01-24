@@ -1,13 +1,17 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards, Request } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { FindUsersQueryDto, SignInDto, UpdateUserDto, UserDto } from './create-cat.dto';
 import { UserService } from './user.service';
+import { AuthGuard } from '@nestjs/passport';
+import { AuthService } from 'src/auth/auth.service';
+import { LocalAuthGuard } from 'src/auth/local-auth.guard';
 
 
 @Controller('users')
 export class UserController {
     constructor(
-        private readonly userService: UserService
+        private readonly userService: UserService,
+        private authService: AuthService
     ) { }
 
 
@@ -28,11 +32,16 @@ export class UserController {
         return await this.userService.create(createUser)
     }
 
+    @UseGuards(LocalAuthGuard)
     @ApiTags('Auth')
     @Post('login')
-    async signIn(@Body() signInBody: SignInDto) {
-        const _user = await this.userService.getUserById(signInBody)
-        return _user;
+    async signIn(
+        @Request() req,
+        @Body() signInBody: SignInDto
+    ) {
+        // console.log("user login", req);
+
+        return req.user
     }
 
     @ApiTags('users')
@@ -57,8 +66,8 @@ export class UserController {
     @Patch('/:userId')
     async updateUser(
         @Param('userId') userId: string,
-        @Body() updateUserData:UpdateUserDto
-    ){
+        @Body() updateUserData: UpdateUserDto
+    ) {
         return this.userService.updateUser(
             userId,
             updateUserData
